@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2" project="cameraaccess">
+
+    <!-- App -->
+    <string name="app_name" description="Launcher label / app name">Glasses Live HQ</string>
+
+    <!-- App chrome -->
+    <string name="scaffold_error_icon_description" description="Content description for the error snackbar icon">Camera Access error</string>
+    <string name="debug_menu_description" description="Content description for the debug menu button">Debug menu</string>
+
+    <!-- Home Screen -->
+    <string name="register_button_title" description="Connect App">Connect my glasses</string>
+    <string name="home_redirect_message" description="Redirect message">You\'ll be redirected to the Meta AI app to confirm your connection.</string>
+    <string name="home_tip_session_title" description="Tip title about starting a session">Start a session</string>
+    <string name="home_tip_session" description="Tip about starting a session">Connect to your glasses to get started.</string>
+    <string name="home_tip_preview_title" description="Tip title about preview">Start preview</string>
+    <string name="home_tip_preview" description="Tip about preview">See the live camera feed from your glasses.</string>
+    <string name="home_tip_capture_title" description="Tip title about capture">Capture</string>
+    <string name="home_tip_capture" description="Tip about capture">Take photos and record video with audio.</string>
+    <string name="error_activity_unavailable" description="Error shown when registration is tapped but no activity is available">Can\'t open right now. Try again.</string>
+
+    <!-- Camera Screen -->
+    <string name="camera_access_icon_description" description="Camera Access icon description">Camera Access icon</string>
+    <string name="live_preview" description="Live preview content description">Live preview</string>
+    <string name="waiting_for_active_device" description="Waiting for active device message">Waiting for an active device</string>
+    <string name="status_session" description="Session status chip label">Session</string>
+    <string name="status_stream" description="Stream status chip label">Stream</string>
+    <string name="unregister_button_title" description="Disconnect App">Disconnect</string>
+
+    <!-- Placeholder states -->
+    <string name="placeholder_put_on_glasses" description="Placeholder when no active device">Put on your glasses</string>
+    <string name="placeholder_ready_title" description="Placeholder when ready to start a session">Ready</string>
+    <string name="placeholder_ready_subtitle" description="Placeholder subtitle when ready">Start a session to connect to your glasses.</string>
+    <string name="placeholder_session_started_title" description="Placeholder when session is started">Session started</string>
+    <string name="placeholder_session_started_subtitle" description="Placeholder subtitle when session is started">Start the preview to see the live camera feed.</string>
+    <string name="paused_title" description="Badge shown over the frozen preview when the glasses pause the stream">Paused</string>
+    <string name="paused_subtitle" description="Instruction telling the user how to resume a paused stream">Tap your glasses to resume.</string>
+
+    <!-- Capture controls -->
+    <string name="preview_label" description="Preview toggle label">Preview</string>
+    <string name="start_preview" description="Start preview content description">Start preview</string>
+    <string name="stop_preview" description="Stop preview content description">Stop preview</string>
+    <string name="record_label" description="Record button label">Record</string>
+    <string name="record_video" description="Record video content description">Record video</string>
+    <string name="stop_recording" description="Stop recording content description">Stop recording</string>
+    <string name="capture_photo" description="Capture photo content description">Capture photo</string>
+    <string name="mic_on" description="Microphone on content description">Turn off microphone</string>
+    <string name="mic_off" description="Microphone off content description">Turn on microphone</string>
+    <string name="start_session_button" description="Start session button">Start session</string>
+    <string name="end_session_button" description="End session button">End session</string>
+
+    <!-- Update required -->
+    <string name="update_firmware_button_title" description="Open firmware update">Update firmware</string>
+    <string name="update_required_title" description="Update required warning title">Update required</string>
+    <string name="update_required_subtitle" description="Update required placeholder subtitle">Apply the update to start your camera.</string>
+    <string name="update_required_firmware_message" description="Firmware update required warning">Your glasses need a firmware update before Camera Access can start.</string>
+
+    <!-- Camera permission redirect -->
+    <string name="camera_permission_redirect_title" description="Camera permission redirect title">Allow camera access</string>
+    <string name="camera_permission_redirect_message" description="Camera permission redirect message">To preview your glasses camera, you\'ll be taken to the Meta AI app to grant access, then returned here.</string>
+    <string name="camera_permission_continue" description="Camera permission continue button">Continue</string>
+    <string name="camera_permission_cancel" description="Camera permission cancel button">Cancel</string>
+
+    <!-- Capture Preview -->
+    <string name="captured_photo" description="Captured photo content description">Captured photo</string>
+    <string name="share" description="Share">Share</string>
+    <string name="close_preview" description="Close preview content description">Close</string>
+
+    <!-- Camera errors -->
+    <string name="error_start_session_first" description="Error shown when previewing before a session is started">Start a session before previewing.</string>
+    <string name="error_camera_permission_denied" description="Error shown when camera permission is denied">Camera permission denied</string>
+    <string name="error_photo_capture_failed" description="Error shown when a photo capture fails">Couldn\'t capture photo. Try again.</string>
+    <string name="error_recording_too_short" description="Error shown when a recording stops before any video is captured">Couldn\'t record. Hold a little longer and try again.</string>
+    <string name="error_recording_save_failed" description="Error shown when a recording cannot be finalized">Recording couldn\'t be saved. Try again.</string>
+
+    <!-- Wearables errors -->
+    <string name="error_device_update_required" description="Error shown when a connected device needs a firmware update"><xliff:g id="device_name">%1$s</xliff:g> needs an update to work with this app.</string>
+    <string name="error_permissions_required" description="Error shown when required Android permissions are denied">Allow Bluetooth, Bluetooth connect and internet permissions.</string>
+
+    <!-- Streaming notification -->
+    <string name="notification_channel_name" description="Streaming notification channel name">Glasses streaming</string>
+    <string name="notification_channel_description" description="Streaming notification channel description">Notifications for active camera streaming</string>
+    <string name="notification_title" description="Streaming notification title">Glasses Live HQ</string>
+    <string name="notification_body" description="Streaming notification body">Streaming from your glasses.</string>
+    <string name="notification_body_live" description="Streaming notification body while publishing">Live: sending your glasses camera to the stream server.</string>
+
+    <!-- Mock Device Kit Screen -->
+    <string name="mock_device_kit_title" description="MockDeviceKit title">MockDeviceKit</string>
+    <string name="mock_device_name" description="Display name for a paired mock device">Mock glasses</string>
+    <string name="devices_paired_count" description="Number of devices paired"><xliff:g id="count">%1$d</xliff:g> device(s) paired</string>
+    <string name="mock_device_kit_description" description="MockDeviceKit description">This screen simulates devices and mocks their capabilities and states.</string>
+    <string name="enable_mock_device_kit" description="Enable MockDeviceKit button">Enable MockDeviceKit</string>
+    <string name="disable_mock_device_kit" description="Disable MockDeviceKit button">Disable MockDeviceKit</string>
+    <string name="pair_rayban_meta" description="Pair Ray-Ban Meta">Pair Ray-Ban Meta</string>
+    <string name="unpair" description="Unpair">Unpair</string>
+    <string name="select_image" description="Select image">Select image</string>
+    <string name="has_captured_image" description="Has captured image">Has captured image</string>
+    <string name="front_camera" description="Front camera">Front camera</string>
+    <string name="back_camera" description="Back camera">Back camera</string>
+    <string name="camera_source_label" description="Camera source dropdown label">Camera source: <xliff:g id="source">%1$s</xliff:g></string>
+    <string name="camera_source_none" description="Camera source none">None</string>
+    <string name="camera_source_video_file" description="Camera source video file">Video file</string>
+    <string name="power" description="Power toggle label">Power</string>
+    <string name="donned" description="Donned toggle label">Donned</string>
+    <string name="unfolded" description="Unfolded toggle label">Unfolded</string>
+    <string name="captouch_section_title" description="Section label for the capacitive touch gesture buttons">Capacitive touch events</string>
+    <string name="captouch_tap" description="Button that simulates a single tap gesture on the glasses">Tap</string>
+    <string name="captouch_tap_and_hold" description="Button that simulates a tap-and-hold gesture on the glasses">Tap and hold</string>
+
+    <!-- Camera Permission Alert (MockDeviceKit camera source) -->
+    <string name="camera_permission_alert_title" description="Camera permission alert title">Camera access required</string>
+    <string name="camera_permission_alert_message" description="Camera permission alert message">Camera access was denied. Enable it in Settings to use the camera source.</string>
+    <string name="camera_permission_open_settings" description="Camera permission open settings button">Open Settings</string>
+</resources>

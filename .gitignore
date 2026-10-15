@@ -1,0 +1,17 @@
+*.iml
+.gradle
+.kotlin
+.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Signing keys and credentials never belong in the repo
+*.keystore
+*.jks
+*.p12
+*.b64
+keystore.properties
