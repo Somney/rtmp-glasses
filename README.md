@@ -13,12 +13,12 @@ It is Meta's official *CameraAccess* sample (Wearables Device Access Toolkit 1.0
 streaming pipeline added. Two stream modes:
 
 ```
-Original quality (default):  glasses H.265 ─ smoothing buffer ─ Enhanced RTMP (H.265 + AAC) → MediaMTX → OBS
-Compatible:                  glasses H.265 ─ smoothing buffer ─ decode → H.264 + AAC → RTMP/SRT/RTSP
+Compatible (default):        glasses H.265 ─ smoothing buffer ─ decode → H.264 + AAC (constant fps) → RTMP/SRT/RTSP
+Original quality:            glasses H.265 ─ smoothing buffer ─ Enhanced RTMP (H.265 + AAC) → MediaMTX → OBS
 ```
 
-*Original quality* forwards the glasses' own video untouched (no second compression, lowest delay).
-*Compatible* re-encodes on the phone, for players that can't show H.265 or for SRT/RTSP.
+*Compatible* (recommended) re-encodes on the phone at a steady frame rate and works with any server or player.
+*Original quality* (experimental) forwards the glasses' own video untouched; its frame rate follows whatever the glasses deliver.
 
 ## 1. Install
 
@@ -58,9 +58,10 @@ change is needed.
 
 1. **Connect** (first launch only) → approve in the Meta AI app.
 2. **Start Session** → **Preview** (the glasses camera turns on).
-3. **Go Live**. The top-left chips show what the glasses are sending (`in: 504×896 · 24 fps · 1.8 Mbps`)
-   and what's going out (`live: live 1900 kbps`). If the picture gets blocky while the `in`
-   numbers drop, the glasses↔phone link is the bottleneck: move the phone closer or use Medium quality.
+3. **Go Live**. The top-left chips show what the glasses are sending (`glasses: 504×896 · 24 fps · 1.8 Mbps`)
+   and what's going out (`live: live · 24 fps · 3900 kbps`). The `glasses` number swings because
+   frames arrive in bursts; the `live` fps should stay steady. If the picture gets blocky while the
+   `glasses` numbers drop, the glasses↔phone link is the bottleneck (see Troubleshooting).
 4. Tap **LIVE** again to stop. Ending the preview/session also ends the stream.
 
 Settings (⚙):
@@ -68,10 +69,10 @@ Settings (⚙):
 | Setting | Notes |
 |---|---|
 | Server URL | `rtmp://` or `rtmps://` (both modes); `srt://` or `rtsp://` (Compatible only). MediaMTX SRT: `srt://IP:8890?streamid=publish:live/glasses` |
-| Stream mode | Original quality (H.265 passthrough) or Compatible (H.264 re-encode) |
-| Smoothing buffer | Off / 0.25 / 0.5 / 1 s. Holds frames briefly and releases them evenly, fixing stutter-then-fast-forward. Adds that much delay. |
-| Glasses camera quality | Low 360×640, Medium 504×896, High 720×1280. Takes effect the next time you start Preview. Medium is usually steadier over Bluetooth. |
-| Frame rate | 15 / 24 / 30 fps |
+| Stream mode | Compatible (H.264, recommended) or Original quality (H.265 passthrough, experimental) |
+| Smoothing buffer | Off / 0.5 / 1 / 2 s (default 1 s). Holds frames and releases them evenly, fixing stutter-then-fast-forward. Adds that much delay. |
+| Glasses camera quality | Low 360×640, Medium 504×896, High 720×1280. Preview restarts automatically to apply. Medium is usually steadier. |
+| Frame rate | 15 / 24 / 30 fps. Preview restarts automatically to apply. In Compatible mode the output is held at exactly this rate. |
 | Video bitrate | Compatible mode only |
 | Lower bitrate on weak networks | Compatible mode only; leave off on home Wi-Fi |
 | Audio | Glasses mic (Bluetooth), phone mic, or none |
@@ -91,7 +92,11 @@ anyway, set the app's battery usage to *Unrestricted*.
 - **Black video in OBS for a few seconds** — the stream starts on the glasses' next keyframe; it fills in shortly.
 - **OBS shows nothing in Original quality mode** — play it via the `rtsp://` URL, update MediaMTX
   (H.265-over-RTMP needs v1.4+), or switch the app to Compatible mode.
-- **Still stuttery** — raise the smoothing buffer to 1 s. In OBS, Media Source → *Network buffering* 2 MB.
+- **Still stuttery** — raise the smoothing buffer to 2 s. In OBS, Media Source → *Network buffering* 2 MB.
+- **Blocky / drops to low resolution** — the glasses lower their own quality when their wireless link
+  to the phone gets congested. Keep the phone close, turn off other Bluetooth devices, put the phone's
+  Wi-Fi on a **5 GHz** network (2.4 GHz Wi-Fi shares the radio with Bluetooth), and use Medium quality at 24 fps.
+  The `glasses:` chip shows when this is happening.
 - **Audio slightly out of sync** — use OBS → Advanced Audio Properties → *Sync Offset* on the source.
 - **No audio from the glasses mic** — the glasses must be connected to the phone as a Bluetooth
   audio device. The app tells you if it falls back to no audio. Try *Phone mic* to confirm audio works at all.

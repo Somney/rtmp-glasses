@@ -188,14 +188,15 @@ fun LiveSettingsDialog(
               text =
                   if (modeMismatch) "Original quality needs an rtmp:// URL. Pick Compatible for SRT/RTSP."
                   else if (mode == LiveMode.PASSTHROUGH)
-                      "Sends the glasses' own video untouched: sharpest and lowest delay. " +
-                          "In OBS, play it via rtsp://<PC IP>:8554/<path>."
-                  else "Re-encodes to H.264 on the phone. Use if your player can't show H.265.",
+                      "Experimental. Sends the glasses' own video untouched; frame rate follows " +
+                          "the glasses. In OBS, play it via rtsp://<PC IP>:8554/<path>."
+                  else "Recommended. Re-encodes to H.264 at a steady frame rate; works with any " +
+                      "server or player.",
               fontSize = 12.sp,
               color = if (modeMismatch) AppColor.Red else Color.Unspecified,
           )
 
-          Section("Smoothing buffer (evens out stutter / fast-forward)") {
+          Section("Smoothing buffer (evens out stutter / fast-forward; adds this much delay)") {
             LiveSettings.SMOOTHING_OPTIONS_MS.forEach { ms ->
               FilterChip(
                   selected = smoothing == ms,
@@ -207,7 +208,7 @@ fun LiveSettingsDialog(
             }
           }
 
-          Section("Glasses camera quality (applies on next Preview)") {
+          Section("Glasses camera quality (Preview restarts to apply)") {
             LiveQuality.entries.forEach { q ->
               FilterChip(
                   selected = quality == q,
@@ -217,7 +218,7 @@ fun LiveSettingsDialog(
             }
           }
 
-          Section("Frame rate") {
+          Section("Frame rate (Preview restarts to apply)") {
             LiveSettings.FPS_OPTIONS.forEach { f ->
               FilterChip(selected = fps == f, onClick = { fps = f }, label = { Text("$f fps") })
             }

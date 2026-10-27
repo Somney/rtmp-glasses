@@ -57,6 +57,8 @@ data class CameraUiState(
     val isStartingLive: Boolean = false,
     // What the glasses are actually sending, e.g. "504×896 · 24 fps · 1.8 Mbps".
     val inputStats: String = "",
+    // Frames per second actually going out to the server while live.
+    val outputFps: Int = 0,
 ) {
   /** Publishing (or trying to) to the stream server. */
   val isLiveActive: Boolean
@@ -70,7 +72,12 @@ data class CameraUiState(
         when (val s = liveState) {
           LiveState.Idle -> "off"
           LiveState.Connecting -> "connecting"
-          is LiveState.Live -> if (s.bitrateKbps > 0) "live ${s.bitrateKbps} kbps" else "live"
+          is LiveState.Live ->
+              buildString {
+                append("live")
+                if (outputFps > 0) append(" · $outputFps fps")
+                if (s.bitrateKbps > 0) append(" · ${s.bitrateKbps} kbps")
+              }
           is LiveState.Reconnecting -> "reconnecting"
           is LiveState.Failed -> "failed"
         }

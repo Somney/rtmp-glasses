@@ -9,10 +9,10 @@ import com.meta.wearable.dat.camera.types.VideoQuality
 
 /** How the video leaves the phone. */
 enum class LiveMode(val label: String) {
-  /** Forward the glasses' own H.265 untouched (RTMP only). Best quality, lowest delay. */
-  PASSTHROUGH("Original quality (H.265)"),
-  /** Decode and re-encode to H.264. Works with any server/player and with SRT/RTSP URLs. */
+  /** Decode and re-encode to H.264 at a constant frame rate. Works with any server/player. */
   COMPATIBLE("Compatible (H.264)"),
+  /** Forward the glasses' own H.265 untouched (RTMP only). Experimental. */
+  PASSTHROUGH("Original quality (H.265)"),
 }
 
 /** Where the live stream's audio comes from. */
@@ -32,7 +32,7 @@ enum class LiveQuality(val label: String, val videoQuality: VideoQuality) {
 data class LiveSettings(
     /** rtmp://, rtmps://, srt:// or rtsp:// URL, e.g. rtmp://192.168.1.50:1935/live/glasses */
     val url: String = "",
-    val mode: LiveMode = LiveMode.PASSTHROUGH,
+    val mode: LiveMode = LiveMode.COMPATIBLE,
     val quality: LiveQuality = LiveQuality.MEDIUM,
     /** Glasses frame rate. The SDK accepts 2, 7, 15, 24 or 30. */
     val fps: Int = 24,
@@ -40,7 +40,7 @@ data class LiveSettings(
     val videoBitrateKbps: Int = 4000,
     val audioSource: LiveAudioSource = LiveAudioSource.GLASSES,
     /** Smoothing buffer that evens out bursty frames from the glasses. 0 = off. */
-    val smoothingMs: Int = 500,
+    val smoothingMs: Int = 1000,
     /** Compatible mode only: lower the bitrate automatically on a congested network. */
     val adaptiveBitrate: Boolean = false,
     /** Reconnect automatically if the server connection drops. */
@@ -49,7 +49,7 @@ data class LiveSettings(
   companion object {
     val FPS_OPTIONS = listOf(15, 24, 30)
     val BITRATE_OPTIONS_KBPS = listOf(2500, 4000, 6000, 8000)
-    val SMOOTHING_OPTIONS_MS = listOf(0, 250, 500, 1000)
+    val SMOOTHING_OPTIONS_MS = listOf(0, 500, 1000, 2000)
 
     const val AUDIO_SAMPLE_RATE = 44100
     const val AUDIO_BITRATE = 128 * 1000

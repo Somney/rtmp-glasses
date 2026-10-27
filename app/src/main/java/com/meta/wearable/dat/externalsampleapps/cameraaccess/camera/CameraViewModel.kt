@@ -46,6 +46,7 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.HevcDecoder
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.HevcParameterSetCollector
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LiveAudioSource
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LivePublisher
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LiveQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LiveSettings
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LiveSettingsStore
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.LiveState
@@ -103,6 +104,12 @@ class CameraViewModel(
   private var statsBytes = 0L
   private var statsFrames = 0
 
+  // Glasses camera quality/fps the current Preview was started with. Changing them requires
+  // restarting the camera stream; [restartPreviewPending] does that automatically.
+  private var appliedQuality: LiveQuality? = null
+  private var appliedFps = 0
+  private var restartPreviewPending = false
+
   private val _uiState = MutableStateFlow(CameraUiState(liveSettings = liveSettingsStore.load()))
   val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
@@ -147,6 +154,10 @@ class CameraViewModel(
     videoRecorder.setAudioInputHandler(audioInputHandler)
 
     livePublisher.onNotice = { message -> wearablesViewModel.setRecentError(message) }
+
+    viewModelScope.launch {
+      livePublisher.outputFps.collect { fps -> _uiState.update { it.copy(outputFps = fps) } }
+    }
 
     // Mirror the live publisher's connection state into the UI.
     viewModelScope.launch {
@@ -336,6 +347,8 @@ class CameraViewModel(
     // Foreground service keeps the stream/recording alive while backgrounded.
     StreamingService.start(getApplication())
     val liveSettings = _uiState.value.liveSettings
+    appliedQuality = liveSettings.quality
+    appliedFps = liveSettings.fps
     current
         .addCamera(
             StreamConfiguration(
@@ -474,7 +487,8 @@ class CameraViewModel(
     statsBytes += bytes
     if (!isCodecConfig) statsFrames++
     val elapsed = now - statsWindowStartNs
-    if (elapsed < 1_000_000_000L) return
+    // 2-second window: the glasses deliver in bursts, so 1 s readings swing wildly.
+    if (elapsed < 2_000_000_000L) return
     val fps = statsFrames * 1_000_000_000.0 / elapsed
     val mbps = statsBytes * 8 * 1000.0 / elapsed
     val text =
@@ -529,7 +543,14 @@ class CameraViewModel(
     stopCamera(camera)
     camera = null
     stream = null
+    appliedQuality = null
+    appliedFps = 0
     _uiState.update { it.copy(streamState = StreamState.STOPPED, hasReceivedFirstFrame = false) }
+    if (restartPreviewPending) {
+      // Settings changed while previewing: start again with the new quality/fps.
+      restartPreviewPending = false
+      if (_uiState.value.isSessionActive) startStreaming()
+    }
   }
 
   /**
@@ -655,6 +676,18 @@ class CameraViewModel(
   fun updateLiveSettings(settings: LiveSettings) {
     liveSettingsStore.save(settings)
     _uiState.update { it.copy(liveSettings = settings, showLiveSettings = false) }
+    val cameraChanged =
+        appliedQuality != null &&
+            (settings.quality != appliedQuality || settings.fps != appliedFps)
+    if (!cameraChanged) return
+    if (_uiState.value.isLiveActive || _uiState.value.isRecording) {
+      wearablesViewModel.setRecentError(
+          "New quality/frame rate applies when you stop and restart Preview")
+    } else if (camera != null) {
+      // Restart the glasses camera so the new quality/fps actually take effect.
+      restartPreviewPending = true
+      stopStreaming()
+    }
   }
 
   fun toggleLive(requestRecordAudioPermission: suspend () -> Boolean) {
@@ -699,6 +732,8 @@ class CameraViewModel(
             live = true,
             microphone = settings.audioSource != LiveAudioSource.NONE,
         )
+        // The encoder must run at the rate the glasses camera was actually started with.
+        if (appliedFps > 0) settings = settings.copy(fps = appliedFps)
         val error = livePublisher.start(settings, codecConfig, lastFrameWidth, lastFrameHeight)
         if (error != null) {
           wearablesViewModel.setRecentError(error)

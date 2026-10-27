@@ -78,6 +78,10 @@ class LivePublisher(context: Context) {
   private val _state = MutableStateFlow<LiveState>(LiveState.Idle)
   val state: StateFlow<LiveState> = _state.asStateFlow()
 
+  /** Frames per second actually going out to the server (0 when not live). */
+  private val _outputFps = MutableStateFlow(0)
+  val outputFps: StateFlow<Int> = _outputFps.asStateFlow()
+
   /** Non-fatal messages for the user (e.g. falling back to no audio). */
   var onNotice: ((String) -> Unit)? = null
 
@@ -181,11 +185,16 @@ class LivePublisher(context: Context) {
     val hasAudio = rawAudio !is NoAudioSource
     // Video is held back by the smoothing buffer; hold audio back by the same amount.
     val audioSource =
-        if (hasAudio && delayUs > 0) DelayedAudioSource(rawAudio, delayUs) else rawAudio
+        if (hasAudio && delayUs > 0) {
+          DelayedAudioSource(rawAudio, delayUs) { pacer.scheduleShiftUs }
+        } else {
+          rawAudio
+        }
 
     val newEngine: Engine =
         when (settings.mode) {
-          LiveMode.PASSTHROUGH -> PassthroughEngine(connectChecker, audioSource, hasAudio)
+          LiveMode.PASSTHROUGH ->
+              PassthroughEngine(connectChecker, audioSource, hasAudio, smoothed = delayUs > 0)
           LiveMode.COMPATIBLE -> CompatibleEngine(appContext, connectChecker, audioSource, hasAudio)
         }
     val error =
@@ -208,6 +217,7 @@ class LivePublisher(context: Context) {
 
     _state.value = LiveState.Connecting
     acquireWifiLock()
+    newEngine.setFpsCallback { fps -> _outputFps.value = fps }
     pacer.delayUs = delayUs
     engine = newEngine
     pacer.start()
@@ -244,6 +254,7 @@ class LivePublisher(context: Context) {
     }
     releaseGlassesAudio()
     releaseWifiLock()
+    _outputFps.value = 0
   }
 
   private fun releaseGlassesAudio() {
@@ -300,6 +311,9 @@ private interface Engine {
 
   fun retry(delayMs: Long, reason: String): Boolean
 
+  /** Reports output frames per second, about once a second. */
+  fun setFpsCallback(callback: (Int) -> Unit)
+
   fun stop()
 }
 
@@ -308,6 +322,8 @@ private class PassthroughEngine(
     connectChecker: ConnectChecker,
     private val audioSource: AudioSource,
     private val hasAudio: Boolean,
+    /** Frames arrive evenly paced by the FramePacer: stamp them with the send time. */
+    private val smoothed: Boolean,
 ) : Engine {
 
   companion object {
@@ -330,6 +346,9 @@ private class PassthroughEngine(
   private var baseTsUs = 0L
   private var lastPtsUs = Long.MIN_VALUE
   private var lastTsUs = -1L
+  private var fpsCallback: ((Int) -> Unit)? = null
+  private var fpsCount = 0
+  private var fpsWindowStartUs = 0L
 
   private val audioEncoder =
       AudioEncoder(
@@ -431,26 +450,47 @@ private class PassthroughEngine(
         waitingForKeyframe = false
       }
 
-      // Timestamps follow the glasses' capture clock so playback speed is steady, anchored to
-      // the phone clock at the first frame (audio uses the same phone clock).
       val now = TimeUtils.getCurrentTimeMicro()
-      val jumped =
-          lastPtsUs != Long.MIN_VALUE &&
-              (presentationTimeUs < lastPtsUs || presentationTimeUs - lastPtsUs > MAX_PTS_GAP_US)
-      if (basePtsUs == Long.MIN_VALUE || jumped) {
-        basePtsUs = presentationTimeUs
-        baseTsUs = maxOf(now - startTsUs, lastTsUs + 1000)
+      var ts: Long
+      if (smoothed) {
+        // The pacer releases frames on an even schedule (and shifts audio to match), so the
+        // send time is the smooth timeline the viewer should see.
+        ts = now - startTsUs
+      } else {
+        // No pacer: follow the glasses' capture clock, anchored to the phone clock.
+        val jumped =
+            lastPtsUs != Long.MIN_VALUE &&
+                (presentationTimeUs < lastPtsUs || presentationTimeUs - lastPtsUs > MAX_PTS_GAP_US)
+        if (basePtsUs == Long.MIN_VALUE || jumped) {
+          basePtsUs = presentationTimeUs
+          baseTsUs = maxOf(now - startTsUs, lastTsUs + 1000)
+        }
+        lastPtsUs = presentationTimeUs
+        ts = baseTsUs + (presentationTimeUs - basePtsUs)
       }
-      lastPtsUs = presentationTimeUs
-      var ts = baseTsUs + (presentationTimeUs - basePtsUs)
       if (ts <= lastTsUs) ts = lastTsUs + 1000
       lastTsUs = ts
+      countFrame(now)
 
       val payload = HevcNals.join(data, slices)
       val info = MediaCodec.BufferInfo()
       info.set(0, payload.size, ts, if (isKeyframe) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
       rtmp.sendVideo(ByteBuffer.wrap(payload), info)
     }
+  }
+
+  private fun countFrame(nowUs: Long) {
+    if (fpsWindowStartUs == 0L) fpsWindowStartUs = nowUs
+    fpsCount++
+    if (nowUs - fpsWindowStartUs >= 1_000_000L) {
+      fpsCallback?.invoke(fpsCount)
+      fpsCount = 0
+      fpsWindowStartUs = nowUs
+    }
+  }
+
+  override fun setFpsCallback(callback: (Int) -> Unit) {
+    fpsCallback = callback
   }
 
   /** The glasses changed resolution/settings: send a new sequence header before the next frame. */
@@ -542,6 +582,10 @@ private class CompatibleEngine(
           false
         }
     if (!videoOk) return "This phone's video encoder rejected the settings"
+    // Constant output frame rate: the fps limiter (on by default) drops extra frames, and force
+    // render repeats the last frame when the glasses are late, so viewers get a steady fps.
+    stream.forceFpsLimit(true)
+    stream.getGlInterface().setForceRender(true, settings.fps)
     val audioOk =
         try {
           stream.prepareAudio(
@@ -591,6 +635,10 @@ private class CompatibleEngine(
   override fun retry(delayMs: Long, reason: String): Boolean =
       stream.getStreamClient().reTry(delayMs, reason, null)
 
+  override fun setFpsCallback(callback: (Int) -> Unit) {
+    stream.setFpsListener { fps -> callback(fps) }
+  }
+
   override fun stop() {
     runCatching { if (stream.isStreaming) stream.stopStream() }
     runCatching { stream.release() }
@@ -603,7 +651,18 @@ private class CompatibleEngine(
 private class DelayedAudioSource(
     private val inner: AudioSource,
     private val delayUs: Long,
+    /** Extra delay the video pacer has drifted by; audio follows it gradually. */
+    private val videoShiftUs: () -> Long,
 ) : AudioSource() {
+
+  companion object {
+    // Audio follows the video schedule by at most this much per audio buffer (~20 ms each),
+    // so changes are inaudible and timestamps stay increasing.
+    private const val MAX_STEP_US = 3_000L
+  }
+
+  private var appliedShiftUs = 0L
+  private var lastTsUs = Long.MIN_VALUE
 
   override fun create(
       sampleRate: Int,
@@ -617,7 +676,13 @@ private class DelayedAudioSource(
     inner.start(
         object : GetMicrophoneData {
           override fun inputPCMData(frame: Frame) {
-            frame.timeStamp += delayUs
+            val target = videoShiftUs()
+            val diff = target - appliedShiftUs
+            appliedShiftUs += diff.coerceIn(-MAX_STEP_US, MAX_STEP_US)
+            var ts = frame.timeStamp + delayUs + appliedShiftUs
+            if (lastTsUs != Long.MIN_VALUE && ts <= lastTsUs) ts = lastTsUs + 1
+            lastTsUs = ts
+            frame.timeStamp = ts
             getMicrophoneData.inputPCMData(frame)
           }
         })

@@ -382,7 +382,7 @@ private fun TopBar(
       )
       if (ui.inputStats.isNotEmpty()) {
         StatusChip(
-            label = "in",
+            label = "glasses",
             value = ui.inputStats,
             active = ui.isStreaming,
             present = ui.hasStream,
