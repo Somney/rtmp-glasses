@@ -560,9 +560,21 @@ private class CompatibleEngine(
       frameWidth: Int,
       frameHeight: Int,
   ): String? {
-    // Encode at the glasses' own size (no upscaling); keep dimensions encoder-friendly.
-    val width = (frameWidth and 0xFFF8).coerceAtLeast(160)
-    val height = (frameHeight and 0xFFF8).coerceAtLeast(160)
+    // Fixed, standard output size for the whole stream, picked from the chosen quality:
+    //  - exactly 9:16, and both sides multiples of 16. Many phone encoders mis-handle other sizes
+    //    (504 wide, for example), which gives players like OBS a frame that doesn't match the
+    //    size the stream advertises, so it's drawn squashed or offset.
+    //  - it never changes when the glasses lower their own resolution mid-stream; the decoded
+    //    picture is just scaled into it, so OBS keeps one stable canvas size.
+    val (shortSide, longSide) =
+        when (settings.quality) {
+          LiveQuality.LOW -> 432 to 768
+          LiveQuality.MEDIUM -> 576 to 1024
+          LiveQuality.HIGH -> 720 to 1280
+        }
+    val landscape = frameWidth > frameHeight
+    val width = if (landscape) longSide else shortSide
+    val height = if (landscape) shortSide else longSide
     videoSource.codecConfig = codecConfig
     videoSource.frameWidth = frameWidth
     videoSource.frameHeight = frameHeight

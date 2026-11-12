@@ -78,7 +78,7 @@ Settings (⚙):
 | Audio | Glasses mic (Bluetooth), phone mic, or none |
 | Auto-reconnect | Retries every 3 s if the connection to the server drops |
 
-The output is portrait 720×1280 (the glasses' native orientation). In OBS, rotate or crop the
+In Compatible mode the output is a fixed portrait size for the whole stream (Low 432×768, Medium 576×1024, High 720×1280), even when the glasses briefly lower their resolution. In OBS, rotate or crop the
 source if you want it landscape.
 
 Streaming continues with the screen off (foreground service + Wi-Fi lock). If Android kills it
